@@ -38,6 +38,7 @@ Created by Oleg Klimov. Licensed on the same terms as the rest of OpenAI Gym.
 import sys
 import math
 import numpy as np
+import time
 
 import Box2D
 from Box2D.b2 import fixtureDef
@@ -668,16 +669,16 @@ if __name__ == "__main__":
             total_reward += r
             if done:
             # if steps % 200 == 0 or done:
+                current_time = str(time.time()).split('.')[0] # 当前时间，按秒计算
                 print("\naction " + str(["{:+0.2f}".format(x) for x in a]))
                 print("step {} total_reward {:+0.2f}".format(steps, total_reward))
                 ss = np.array(record_s)
                 aa = np.array(record_a)
                 rr = np.array(record_r)
                 # print(ss.shape,aa.shape,rr.shape)
-                np.save(str(episode_num)+'_s.npy',ss)
-                np.save(str(episode_num)+'_a.npy',aa)
-                np.save(str(episode_num)+'_r.npy',rr)
-                episode_num += 1
+                np.save('./data/'+current_time+'_s.npy',ss)  # 
+                np.save('./data/'+current_time+'_a.npy',aa)
+                np.save('./data/'+current_time+'_r.npy',rr)
                 record_s, record_a, record_r = [],[],[]
 
             steps += 1

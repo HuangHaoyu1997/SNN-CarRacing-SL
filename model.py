@@ -149,6 +149,7 @@ class SCNN(nn.Module):
         return out
 
 '''
+# test code for debug
 import gym
 env = gym.make('CarRacing-v0')
 

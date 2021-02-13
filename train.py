@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 """
 采用CNN对CarRacing游戏的人类交互数据集进行训练
-输入state
-输出离散动作的分类概率
+输入state，输出是离散动作的分类概率，将RL控制问题转化为监督学习
 
 Created on 2021年1月24日16:13
-@author: 黄浩宇
+@author: hyhuang
 Python 3.6.8
 """
 
@@ -87,6 +86,14 @@ if args.optim == 'Adam':
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 elif args.optim == 'SGD':
     optimizer = torch.optim.SGD(net.parameters(),lr=args.lr, momentum=0.9,weight_decay=1e-5)
+
+# Dacay learning_rate
+def lr_scheduler(optimizer, epoch, init_lr=0.1, lr_decay_epoch=50):
+    """Decay learning rate by a factor of 0.1 every lr_decay_epoch epochs."""
+    if epoch % lr_decay_epoch == 0 and epoch > 1:
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = param_group['lr'] * 0.1
+    return optimizer
 
 for epoch in range(args.epochs):
     running_loss,i = 0,0

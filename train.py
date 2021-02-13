@@ -80,7 +80,7 @@ loss_test_record = list([])
 if args.model == 'cnn':
     net = ConvNet(input_channel=3,output_channel=4).to(device)
 if args.model == 'snn':
-    net = SCNN_classification(input_channel=3,output_channel=4,batch_size=args.batch_size,device=device).to(device)
+    net = SCNN(input_channel=3,output_channel=4,batch_size=args.batch_size,device=device).to(device)
 
 if args.optim == 'Adam':
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)

@@ -85,77 +85,20 @@ def mem_update(ops, inputs, spike, mem, thr=0.3, decay=0.1, activation=None):
     now_spike = act_fun(mem - thr)
     return mem, now_spike.float()
 
-class SCNN_discrete(nn.Module):
-    def __init__(self,batch_size,device):
-        super(SCNN_discrete, self).__init__()
-        self.batch_size = batch_size
-        self.device = device
-
-        self.conv1 = nn.Conv2d(4, 8, kernel_size=4, stride=2, padding=0)
-        self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=0)
-        self.conv3 = nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=0)
-        self.conv4 = nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=0)
-        self.conv5 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=0)
-        self.conv6 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=0)
-        
-        self.fc = nn.Linear(256,100)
-        
-        self.value_head = nn.Linear(100, 1) # value net head
-        self.action_head = nn.Linear(100, 3) # action net head
-
-        self.v = nn.Linear(1, 1)
-
-        self.thr_a = nn.Parameter(torch.rand(3, device=self.device))  # tensor变parameter，可训练
-        self.thr_v = nn.Parameter(torch.rand(1, device=self.device))
-    
-    @staticmethod
-    def _weights_init(m):
-        if isinstance(m, nn.Conv2d):
-            nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
-            nn.init.constant_(m.bias, 0.1)
-    
-    def forward(self, input, time_window = 16):
-        c1_mem = c1_spike = torch.zeros(self.batch_size, 8, 47, 47, device=self.device) # 第1卷积层output feature map size=[batch,channel,width,height]
-        c2_mem = c2_spike = torch.zeros(self.batch_size, 16, 23, 23, device=self.device)
-        c3_mem = c3_spike = torch.zeros(self.batch_size, 32, 11, 11, device=self.device)
-        c4_mem = c4_spike = torch.zeros(self.batch_size, 64, 5, 5, device=self.device)
-        c5_mem = c5_spike = torch.zeros(self.batch_size, 128, 3, 3, device=self.device)
-        c6_mem = c6_spike = torch.zeros(self.batch_size, 256, 1, 1, device=self.device)
-        
-        fc_mem = fc_spike = fc_sumspike = torch.zeros(self.batch_size, 100, device=self.device) 
-        v_mem = v_spike = v_sumspike = torch.zeros(self.batch_size, 1, device=self.device)
-        a_mem = a_spike = a_sumspike = torch.zeros(self.batch_size, 3, device=self.device)
-
-        for step in range(time_window): # 仿真时间，即发放次数
-            x = input > torch.rand(input.size(), device=self.device) # prob. firing
-
-            c1_mem, c1_spike = mem_update(ops=self.conv1, inputs=x.float(), mem=c1_mem, spike=c1_spike)
-            c2_mem, c2_spike = mem_update(ops=self.conv2, inputs=c1_spike, mem=c2_mem, spike=c2_spike)
-            c3_mem, c3_spike = mem_update(ops=self.conv3, inputs=c2_spike, mem=c3_mem, spike=c3_spike)
-            c4_mem, c4_spike = mem_update(ops=self.conv4, inputs=c3_spike, mem=c4_mem, spike=c4_spike)
-            c5_mem, c5_spike = mem_update(ops=self.conv5, inputs=c4_spike, mem=c5_mem, spike=c5_spike)
-            c6_mem, c6_spike = mem_update(ops=self.conv6, inputs=c5_spike, mem=c6_mem, spike=c6_spike)
-            
-            c6_flatten = c6_spike.view(self.batch_size, -1)
-            fc_mem, fc_spike = mem_update(ops=self.fc, inputs=c6_flatten, mem=fc_mem, spike=fc_spike)
-            fc_sumspike += fc_spike
-
-            v_mem, v_spike = mem_update(ops=self.value_head, inputs=fc_spike, thr=self.thr_v ,mem=v_mem, spike=v_spike)
-            v_sumspike += v_spike
-            a_mem, a_spike = mem_update(ops=self.action_head, inputs=fc_spike, thr=self.thr_a, mem=a_mem, spike=a_spike)
-            a_sumspike += a_spike
-        
-        value = self.v(v_sumspike / time_window)
-        action = torch.softmax(a_sumspike / time_window, -1)
-
-        return action, value
-
-class SCNN_classification(nn.Module):
-    def __init__(self,input_channel,output_channel,batch_size,device):
-        super(SCNN_classification, self).__init__()
+class SCNN(nn.Module):
+    '''
+    input_channel:  input image of CarRacing game state
+    output_channel: output tensor shape, representing the prob. of each discrete action 
+    batch_size：    batch size when training
+    device:         GPU device or CPU
+    '''
+    def __init__(self,input_channel,output_channel,batch_size,device,time_window=6):
+        super(SCNN, self).__init__()
         self.batch_size = batch_size
         self.device = device
         self.output_channel = output_channel
+        self.time_window = time_window
+        
         self.conv1 = nn.Conv2d(input_channel, 8, kernel_size=4, stride=2, padding=0)
         self.conv2 = nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=0)
         self.conv3 = nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=0)
@@ -166,7 +109,7 @@ class SCNN_classification(nn.Module):
         self.fc1 = nn.Linear(256,100)
         self.fc2 = nn.Linear(100, output_channel)
 
-        # self.thr = nn.Parameter(torch.rand(output_channel, device=self.device))  # tensor变parameter，可训练
+        # self.thr = nn.Parameter(torch.rand(output_channel, device=self.device))  # tensor变parameter，learnable
     
     @staticmethod
     def _weights_init(m):
@@ -174,7 +117,7 @@ class SCNN_classification(nn.Module):
             nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain('relu'))
             nn.init.constant_(m.bias, 0.1)
     
-    def forward(self, input, time_window = 6):
+    def forward(self, input):
         c1_mem = c1_spike = torch.zeros(self.batch_size, 8, 47, 47, device=self.device) # 第1卷积层output feature map size=[batch,channel,width,height]
         c2_mem = c2_spike = torch.zeros(self.batch_size, 16, 23, 23, device=self.device)
         c3_mem = c3_spike = torch.zeros(self.batch_size, 32, 11, 11, device=self.device)
@@ -185,7 +128,7 @@ class SCNN_classification(nn.Module):
         fc1_mem = fc1_spike = fc1_sumspike = torch.zeros(self.batch_size, 100, device=self.device) 
         fc2_mem = fc2_spike = fc2_sumspike = torch.zeros(self.batch_size, self.output_channel, device=self.device)
 
-        for step in range(time_window): # 仿真时间，即发放次数
+        for step in range(self.time_window): # 仿真时间，即发放次数
             x = input > torch.rand(input.size(), device=self.device) # prob. firing
 
             c1_mem, c1_spike = mem_update(ops=self.conv1, inputs=x.float(), mem=c1_mem, spike=c1_spike)
@@ -198,12 +141,11 @@ class SCNN_classification(nn.Module):
             c6_flatten = c6_spike.view(self.batch_size, -1)
             fc1_mem, fc1_spike = mem_update(ops=self.fc1, inputs=c6_flatten, mem=fc1_mem, spike=fc1_spike)
             fc1_sumspike += fc1_spike
-
-            fc2_mem, fc2_spike = mem_update(ops=self.fc2, inputs=fc1_spike, thr=0.3 ,mem=fc2_mem, spike=fc2_spike)
+            fc2_mem, fc2_spike = mem_update(ops=self.fc2, inputs=fc1_spike, mem=fc2_mem, spike=fc2_spike)
             fc2_sumspike += fc2_spike
             
-        out = torch.softmax(fc2_sumspike / time_window, -1)
-
+        out = fc2_sumspike / self.time_window
+        # out = torch.softmax(fc2_sumspike / self.time_window, -1)
         return out
 
 '''

@@ -29,29 +29,6 @@ device = torch.device("cuda:3" if torch.cuda.is_available() else "cpu")
 train_dataset = torchvision.datasets.CIFAR10(root= data_path, train=True, download=True,  transform=transforms.ToTensor())
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 
-def cal_pixel_mean():
-    R = torch.zeros((32,32))
-    G = torch.zeros((32,32))
-    B = torch.zeros((32,32))
-    for i in range(len(train_dataset)):
-        R += train_dataset[i][0][0]
-        G += train_dataset[i][0][1]
-        B += train_dataset[i][0][2]
-    R = R/len(train_dataset)
-    G = G/len(train_dataset)
-    B = B/len(train_dataset)
-    
-    R_var = torch.zeros((32,32))
-    G_var = torch.zeros((32,32))
-    B_var = torch.zeros((32,32))
-    for i in range(len(train_dataset)):
-        R_var += (train_dataset[i][0][0]-R)**2
-        G_var += (train_dataset[i][0][1]-G)**2
-        B_var += (train_dataset[i][0][2]-B)**2
-    R_var = R_var.mean().sqrt()
-    G_var = G_var.mean().sqrt()
-    B_var = B_var.mean().sqrt()
-    return R,G,B,R_var,G_var,B_var
 
 # test_set = torchvision.datasets.MNIST(root= data_path, train=False, download=True,  transform=transforms.ToTensor())
 test_set = torchvision.datasets.CIFAR10(root= data_path, train=False, download=True,  transform=transforms.ToTensor())

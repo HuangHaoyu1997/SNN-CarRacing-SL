@@ -1,5 +1,5 @@
 """
-我从OpenAI Gym[box2d]中拷贝了这个文件，用于执行游戏程序。
+从OpenAI Gym[box2d]中拷贝了这个文件，用于执行游戏程序。
 I copied the file from OpenAI Gym[box2d]'s source code and use it to support CarRacing running.
 
 

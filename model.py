@@ -106,8 +106,9 @@ class SCNN(nn.Module):
         self.conv5 = nn.Conv2d(64, 128, kernel_size=3, stride=1, padding=0)
         self.conv6 = nn.Conv2d(128, 256, kernel_size=3, stride=1, padding=0)
         
-        self.fc1 = nn.Linear(256,100)
-        self.fc2 = nn.Linear(100, output_channel)
+        self.fc1 = nn.Linear(256,128)
+        self.fc2 = nn.Linear(128,128)
+        self.fc3 = nn.Linear(128, output_channel)
 
         # self.thr = nn.Parameter(torch.rand(output_channel, device=self.device))  # tensor变parameter，learnable
     
@@ -125,8 +126,8 @@ class SCNN(nn.Module):
         c5_mem = c5_spike = torch.zeros(self.batch_size, 128, 3, 3, device=self.device)
         c6_mem = c6_spike = torch.zeros(self.batch_size, 256, 1, 1, device=self.device)
         
-        fc1_mem = fc1_spike = fc1_sumspike = torch.zeros(self.batch_size, 100, device=self.device) 
-        fc2_mem = fc2_spike = fc2_sumspike = torch.zeros(self.batch_size, self.output_channel, device=self.device)
+        fc1_mem = fc1_spike = fc1_sumspike = torch.zeros(self.batch_size, 128, device=self.device) 
+        fc2_mem = fc2_spike = fc2_sumspike = torch.zeros(self.batch_size, 128, device=self.device)
 
         for step in range(self.time_window): # 仿真时间，即发放次数
             x = input > torch.rand(input.size(), device=self.device) # prob. firing
@@ -144,7 +145,7 @@ class SCNN(nn.Module):
             fc2_mem, fc2_spike = mem_update(ops=self.fc2, inputs=fc1_spike, mem=fc2_mem, spike=fc2_spike)
             fc2_sumspike += fc2_spike
             
-        out = fc2_sumspike / self.time_window
+        out = self.fc3(fc2_sumspike / self.time_window)
         # out = torch.softmax(fc2_sumspike / self.time_window, -1)
         return out
 

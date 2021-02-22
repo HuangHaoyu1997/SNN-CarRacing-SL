@@ -154,7 +154,7 @@ for epoch in range(args.epochs):
             labels_ = torch.nn.functional.one_hot(aa_test[index], 4).to(device).float()
             # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_test[index].view(-1, 1), 1)
             
-            loss = criterion(outputs.cpu(), labels_)
+            loss = criterion(outputs, labels_)
             # loss = -(outputs.log()*labels_).sum()
             total_loss += loss.item()
             

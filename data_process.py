@@ -14,7 +14,7 @@ dir = './data/'
 action_list = os.listdir(dir+'action')
 reward_list = os.listdir(dir+'reward')
 state_list = os.listdir(dir+'state')
-print(action_list,'\n',reward_list,'\n',state_list)
+# print(action_list,'\n',reward_list,'\n',state_list)
 
 def concat_all():
     '''
@@ -60,5 +60,40 @@ def save_file():
     np.save(dir+'ss.npy',ss)
     np.save(dir+'rr.npy',rr)
 
-aa,rr,ss = concat_all()
-save_file()
+# aa,rr,ss = concat_all()
+# save_file()
+
+import torch
+from torch.utils.data.sampler import WeightedRandomSampler
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+from torch.utils.data import DataLoader
+numDataPoints = 10
+data_dim = 5
+bs = 2
+
+# Create dummy data with class imbalance 9 to 1
+data = torch.FloatTensor(numDataPoints, data_dim)
+target = np.hstack((np.zeros(int(numDataPoints * 0.9), dtype=np.int32),
+                    np.ones(int(numDataPoints * 0.1), dtype=np.int32)))
+
+print ('target train 0/1: {}/{}'.format(len(np.where(target == 0)[0]), len(np.where(target == 1)[0])))
+
+class_sample_count = np.array([len(np.where(target == t)[0]) for t in np.unique(target)])
+print(target)
+weight = 1. / class_sample_count
+samples_weight = np.array([weight[t] for t in target])
+print(samples_weight)
+samples_weight = torch.from_numpy(samples_weight)
+samples_weight = samples_weight.double()
+sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+target = torch.from_numpy(target).long()
+train_dataset = torch.utils.data.TensorDataset(data, target)
+
+train_loader = DataLoader(train_dataset, batch_size=bs, num_workers=0, sampler=sampler)
+for index in BatchSampler(sampler, 10, True):
+    print(index)
+for i, (data, target) in enumerate(train_loader):
+    print ("batch index {}, 0/1: {}/{}".format(
+        i,
+        len(np.where(target.numpy() == 0)[0]),
+        len(np.where(target.numpy() == 1)[0])))

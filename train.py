@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import random
 import torchvision
 import torchvision.transforms as transforms
-from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler, WeightedRandomSampler
 import os
 import time
 from model import *
@@ -77,6 +77,14 @@ number_2_test = len(torch.where(aa_test==2)[0])
 number_3_test = len(torch.where(aa_test==3)[0])
 print('num of labels in test set:',number_0_test,number_1_test,number_2_test,number_3_test,test_num)
 
+# 按样本数量设置采样概率
+class_sample_count = np.array([number_0_train,number_1_train,number_2_train,number_3_train])
+weight = 1. / class_sample_count
+samples_weight = np.array([weight[a] for a in aa_train])
+samples_weight = torch.from_numpy(samples_weight).double()
+weight_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
+
+
 # train_dataset = torchvision.datasets.MNIST(root= data_path, train=True, download=True, transform=transforms.ToTensor())
 # train_dataset = torchvision.datasets.CIFAR10(root= data_path, train=True, download=True,  transform=transforms.ToTensor())
 # train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
@@ -113,7 +121,8 @@ for epoch in range(args.epochs):
     running_loss,i = 0,0
     start_time = time.time() # 开始时间
     # for i, (images, labels) in enumerate(train_loader):
-    for index in BatchSampler(SubsetRandomSampler(range(train_num)), args.batch_size, True): # drop_last=True则表示最后不足一个batch的数据被丢弃
+    # for index in BatchSampler(SubsetRandomSampler(range(train_num)), args.batch_size, True): # drop_last=True则表示最后不足一个batch的数据被丢弃
+    for index in BatchSampler(weight_sampler,args.batch_size,True): # drop_last=True则表示最后不足一个batch的数据被丢弃
         net.zero_grad()
         optimizer.zero_grad()
         images = ss_train[index]

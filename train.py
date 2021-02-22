@@ -181,4 +181,4 @@ for epoch in range(args.epochs):
 plt.plot(acc_record)
 plt.xlabel('epoch')
 plt.ylabel('testing acc')
-plt.savefig('testing_acc.png')
+plt.savefig('testing_acc_'+ args.ckpt_name +'.png')

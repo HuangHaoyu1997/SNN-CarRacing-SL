@@ -176,3 +176,8 @@ for epoch in range(args.epochs):
             os.mkdir('checkpoint')
         torch.save(state, './checkpoint/ckpt_' + args.ckpt_name + '.t7')
         best_acc = acc
+
+plt.plot(acc_record)
+plt.xlabel('epoch')
+plt.ylabel('testing acc')
+plt.savefig('testing_acc.png')

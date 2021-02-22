@@ -60,9 +60,22 @@ def generate_data(data_path, test_ratio=0.2):
 
     return ss_train,aa_train,rr_train,ss_test,aa_test,rr_test
 
+# 生成训练、测试数据集
 ss_train,aa_train,rr_train,ss_test,aa_test,rr_test = generate_data(data_path)
 train_num = len(aa_train)
 test_num = len(aa_test)
+
+# 计算各类样本之数量
+number_0_train = len(torch.where(aa_train==0)[0])
+number_1_train = len(torch.where(aa_train==1)[0])
+number_2_train = len(torch.where(aa_train==2)[0])
+number_3_train = len(torch.where(aa_train==3)[0])
+print('num of labels in train set:',number_0_train,number_1_train,number_2_train,number_3_train,train_num)
+number_0_test = len(torch.where(aa_test==0)[0])
+number_1_test = len(torch.where(aa_test==1)[0])
+number_2_test = len(torch.where(aa_test==2)[0])
+number_3_test = len(torch.where(aa_test==3)[0])
+print('num of labels in test set:',number_0_test,number_1_test,number_2_test,number_3_test,test_num)
 
 # train_dataset = torchvision.datasets.MNIST(root= data_path, train=True, download=True, transform=transforms.ToTensor())
 # train_dataset = torchvision.datasets.CIFAR10(root= data_path, train=True, download=True,  transform=transforms.ToTensor())
@@ -86,6 +99,7 @@ if args.optim == 'Adam':
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 elif args.optim == 'SGD':
     optimizer = torch.optim.SGD(net.parameters(),lr=args.lr, momentum=0.9,weight_decay=1e-5)
+criterion =torch.nn.MSELoss()
 
 # Dacay learning_rate
 def lr_scheduler(optimizer, epoch, init_lr=0.1, lr_decay_epoch=50):
@@ -105,10 +119,10 @@ for epoch in range(args.epochs):
         images = ss_train[index]
         outputs = net(images) 
         
-        labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device)
+        labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device).float()
         # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_train[index].view(-1, 1), 1).to(device)
-        loss = -(outputs.log() * labels_).mean() # cross entropy
-        # loss = criterion(outputs, labels_.to(device))
+        # loss = -(outputs.log() * labels_).mean() # cross entropy
+        loss = criterion(outputs, labels_.to(device))
         running_loss += loss.item()
         loss.backward()
         optimizer.step()
@@ -128,11 +142,11 @@ for epoch in range(args.epochs):
             images = ss_test[index]
             optimizer.zero_grad()
             outputs = net(images)
-            labels_ = torch.nn.functional.one_hot(aa_test[index], 4).to(device)
+            labels_ = torch.nn.functional.one_hot(aa_test[index], 4).to(device).float()
             # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_test[index].view(-1, 1), 1)
             
-            # loss = criterion(outputs.cpu(), labels_)
-            loss = -(outputs.log()*labels_).sum()
+            loss = criterion(outputs.cpu(), labels_)
+            # loss = -(outputs.log()*labels_).sum()
             total_loss += loss.item()
             
             _, predicted = outputs.cpu().max(1)

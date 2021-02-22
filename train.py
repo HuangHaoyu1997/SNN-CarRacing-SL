@@ -26,14 +26,15 @@ parser.add_argument('--epochs', type=int, default=100 ,help='training epoch')
 parser.add_argument('--optim', type=str, default='Adam', help='optimizer')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
+parser.add_argument('--device', type=int,default=1,help='index of GPU device')
 parser.add_argument('--ckpt_name', type=str, default='CNN-CarRacing', help='name of checkpoint file')
 
 args = parser.parse_args()
 
-os.environ['CUDA_VISIBLE_DEVICES'] = "0"
+# os.environ['CUDA_VISIBLE_DEVICES'] = "1"
 
 data_path =  './data/' 
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = torch.device("cuda:"+str(args.device) if torch.cuda.is_available() else "cpu")
 print(device)
 
 def generate_data(data_path, test_ratio=0.2):
@@ -44,9 +45,9 @@ def generate_data(data_path, test_ratio=0.2):
     加速：[0,0.5,0]
     不动：[0.,0.,0.]
     '''
-    ss = torch.tensor(np.load(data_path+'ss.npy')).reshape(-1,3,96,96).to(device).float()/255
-    aa = torch.tensor(np.load(data_path+'aa.npy')).to(device).long()
-    rr = torch.tensor(np.load(data_path+'rr.npy')).to(device)
+    ss = torch.tensor(np.load(data_path+'sss_balance.npy')).reshape(-1,3,96,96).to(device).float()/255
+    aa = torch.tensor(np.load(data_path+'aaa_balance.npy')).to(device).long()
+    rr = torch.tensor(np.load(data_path+'rrr_balance.npy')).to(device)
 
     sample_index = random.sample(range(len(aa)),len(aa))
     test_num = int(len(aa)*test_ratio//args.batch_size)*args.batch_size # 按比例分割训练集和测试集

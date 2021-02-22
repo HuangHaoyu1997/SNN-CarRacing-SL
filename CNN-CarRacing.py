@@ -55,12 +55,7 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
 
         images = images.float().to(device)
-        '''
-        images[:,0,:,:] = (images[:,0,:,:]-R)/R_var
-        images[:,1,:,:] = (images[:,1,:,:]-G)/G_var
-        images[:,2,:,:] = (images[:,2,:,:]-B)/B_var
-        # print(images[0])
-        '''
+
         outputs = snn(images) # F.log_softmax(snn(images),-1)
         labels_ = torch.zeros(batch_size, 10).scatter_(1, labels.view(-1, 1), 1)
         # loss = -(outputs*labels_.to(device)).mean()

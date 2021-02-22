@@ -63,6 +63,8 @@ def save_file():
 # aa,rr,ss = concat_all()
 # save_file()
 
+# 根据样本数量设定随机采样概率
+'''
 import torch
 from torch.utils.data.sampler import WeightedRandomSampler
 from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
@@ -97,3 +99,5 @@ for i, (data, target) in enumerate(train_loader):
         i,
         len(np.where(target.numpy() == 0)[0]),
         len(np.where(target.numpy() == 1)[0])))
+
+'''

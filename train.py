@@ -49,7 +49,7 @@ def generate_data(data_path, test_ratio=0.2):
     rr = torch.tensor(np.load(data_path+'rr.npy')).to(device)
 
     sample_index = random.sample(range(len(aa)),len(aa))
-    test_num = int(len(aa)*test_ratio//args.batch_size)*args.batch_size
+    test_num = int(len(aa)*test_ratio//args.batch_size)*args.batch_size # 按比例分割训练集和测试集
     ss_test = ss[sample_index[:test_num]]
     rr_test = rr[sample_index[:test_num]]
     aa_test = aa[sample_index[:test_num]]

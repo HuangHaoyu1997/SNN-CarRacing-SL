@@ -28,7 +28,7 @@ class ConvNet(nn.Module):
             nn.BatchNorm2d(256),
             nn.ReLU(),
         )                                                # output shape (256, 1, 1)
-        self.fc = nn.Sequential(nn.Linear(256, 100), nn.BatchNorm2d(100), nn.ReLU(), nn.Linear(100, output_channel))
+        self.fc = nn.Sequential(nn.Linear(256, 100), nn.BatchNorm1d(100), nn.ReLU(), nn.Linear(100, output_channel))
         self.apply(self._weights_init)
 
     @staticmethod

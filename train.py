@@ -20,6 +20,9 @@ import time
 from model import *
 import argparse
 
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
+np.set_printoptions(precision=3, suppress=True)
+
 parser = argparse.ArgumentParser(description='CNN CarRacing Supervised Learning')
 parser.add_argument('--model', type=str, default='cnn' ,help='cnn model or snn model')
 parser.add_argument('--epochs', type=int, default=100 ,help='training epoch')
@@ -76,7 +79,8 @@ number_0_test = len(torch.where(aa_test==0)[0])
 number_1_test = len(torch.where(aa_test==1)[0])
 number_2_test = len(torch.where(aa_test==2)[0])
 number_3_test = len(torch.where(aa_test==3)[0])
-print('num of labels in test set:',number_0_test,number_1_test,number_2_test,number_3_test,test_num)
+num_test = np.array([number_0_test,number_1_test,number_2_test,number_3_test])
+print('num of labels in test set:',num_test,test_num)
 
 # 按样本数量设置采样概率
 class_sample_count = np.array([number_0_train,number_1_train,number_2_train,number_3_train])
@@ -84,7 +88,7 @@ weight = 1. / class_sample_count
 samples_weight = np.array([weight[a] for a in aa_train])
 samples_weight = torch.from_numpy(samples_weight).double()
 weight_sampler = WeightedRandomSampler(samples_weight, len(samples_weight))
-
+average_sampler = SubsetRandomSampler(range(train_num))
 
 # train_dataset = torchvision.datasets.MNIST(root= data_path, train=True, download=True, transform=transforms.ToTensor())
 # train_dataset = torchvision.datasets.CIFAR10(root= data_path, train=True, download=True,  transform=transforms.ToTensor())
@@ -108,7 +112,7 @@ if args.optim == 'Adam':
     optimizer = torch.optim.Adam(net.parameters(), lr=args.lr)
 elif args.optim == 'SGD':
     optimizer = torch.optim.SGD(net.parameters(),lr=args.lr, momentum=0.9,weight_decay=1e-5)
-criterion =torch.nn.MSELoss()
+mse = torch.nn.MSELoss()
 
 # Dacay learning_rate
 def lr_scheduler(optimizer, epoch, init_lr=0.1, lr_decay_epoch=50):
@@ -128,26 +132,28 @@ for epoch in range(args.epochs):
         optimizer.zero_grad()
         images = ss_train[index].to(device)
         outputs = net(images) 
-        loss_weight = torch.tensor([weight[i] for i in aa_train[index]]/weight.max()).to(device)
-        # print(loss_weight)
         labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device).float()
         # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_train[index].view(-1, 1), 1).to(device)
+
+        loss_weight = torch.tensor([weight[i] for i in aa_train[index]]/weight.max()).to(device)
         # loss = -(outputs.log() * labels_).mean() # cross entropy
-        loss1 = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
-        loss = criterion(outputs, labels_.to(device))
+        # loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
+        loss = mse(outputs, labels_.to(device))
         
-        running_loss += loss1.item()
-        loss1.backward()
+        running_loss += loss.item()
+        loss.backward()
         optimizer.step()
         if (i+1)%300 == 0:
             print ('Epoch [%d/%d], Step [%d/%d], Loss: %.5f'%(epoch+1, args.epochs, i+1, train_num//args.batch_size,running_loss ))
             running_loss = 0
             # print('Time elasped:', time.time()-start_time)
         i += 1
+    
+    # optimizer = lr_scheduler(optimizer, epoch, learning_rate, 30) # 学习率调整
+
+    # 测试环节testing
     correct = 0
     total = 0
-    # optimizer = lr_scheduler(optimizer, epoch, learning_rate, 30)
-    # 测试环节testing
     total_loss = 0
     correct_label = [0,0,0,0] # 分类别统计分类精度
     with torch.no_grad():
@@ -159,10 +165,10 @@ for epoch in range(args.epochs):
             labels_ = torch.nn.functional.one_hot(aa_test[index], 4).to(device).float()
             # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_test[index].view(-1, 1), 1)
             loss_weight = torch.tensor([weight[i] for i in aa_test[index]]/weight.max()).to(device)
-            loss1 = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
-            loss = criterion(outputs, labels_)
+            # loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
+            loss = mse(outputs, labels_)
             # loss = -(outputs.log()*labels_).sum()
-            total_loss += loss1.item()
+            total_loss += loss.item()
             
             _, predicted = outputs.cpu().max(1)
             
@@ -170,8 +176,7 @@ for epoch in range(args.epochs):
                 if aa_test[index][i] == predicted[i]:
                     correct_label[aa_test[index][i]] += 1
             correct += float(predicted.eq(aa_test[index].cpu()).sum().item())
-    print(correct_label)
-    print('Epoch: %d,Testing acc:%.3f,Testing loss:%.3f'%(epoch+1,100 * correct/test_num, total_loss))
+    print('Epoch: %d,Testing acc:%.3f,Testing loss:%.3f'%(epoch+1,100 * correct/test_num, total_loss), correct_label/num_test)
     acc = 100. * float(correct) / float(test_num)
     acc_record.append(acc)
     if epoch % 5 == 0:
@@ -190,4 +195,5 @@ for epoch in range(args.epochs):
 plt.plot(acc_record)
 plt.xlabel('epoch')
 plt.ylabel('testing acc')
+plt.grid()
 plt.savefig('testing_acc_'+ args.ckpt_name +'.png')

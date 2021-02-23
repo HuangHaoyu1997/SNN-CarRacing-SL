@@ -128,13 +128,16 @@ for epoch in range(args.epochs):
         optimizer.zero_grad()
         images = ss_train[index].to(device)
         outputs = net(images) 
-        
+        loss_weight = torch.tensor([weight[i] for i in aa_train[index]]/weight.max()).to(device)
+        # print(loss_weight)
         labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device).float()
         # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_train[index].view(-1, 1), 1).to(device)
         # loss = -(outputs.log() * labels_).mean() # cross entropy
+        loss1 = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
         loss = criterion(outputs, labels_.to(device))
-        running_loss += loss.item()
-        loss.backward()
+        
+        running_loss += loss1.item()
+        loss1.backward()
         optimizer.step()
         if (i+1)%300 == 0:
             print ('Epoch [%d/%d], Step [%d/%d], Loss: %.5f'%(epoch+1, args.epochs, i+1, train_num//args.batch_size,running_loss ))
@@ -154,12 +157,14 @@ for epoch in range(args.epochs):
             outputs = net(images)
             labels_ = torch.nn.functional.one_hot(aa_test[index], 4).to(device).float()
             # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_test[index].view(-1, 1), 1)
-            
+            loss_weight = torch.tensor([weight[i] for i in aa_test[index]]/weight.max()).to(device)
+            loss1 = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
             loss = criterion(outputs, labels_)
             # loss = -(outputs.log()*labels_).sum()
-            total_loss += loss.item()
+            total_loss += loss1.item()
             
             _, predicted = outputs.cpu().max(1)
+            print(predicted)
             correct += float(predicted.eq(aa_test[index].cpu()).sum().item())
     
     print('Epoch: %d,Testing acc:%.3f'%(epoch+1,100 * correct/test_num))

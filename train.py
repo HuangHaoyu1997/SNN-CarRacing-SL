@@ -147,8 +147,9 @@ for epoch in range(args.epochs):
     correct = 0
     total = 0
     # optimizer = lr_scheduler(optimizer, epoch, learning_rate, 30)
-    # testing 
+    # 测试环节testing
     total_loss = 0
+    correct_label = [0,0,0,0] # 分类别统计分类精度
     with torch.no_grad():
         # for batch_idx, (inputs, targets) in enumerate(test_loader):
         for index in BatchSampler(SubsetRandomSampler(range(test_num)), args.batch_size, True):
@@ -164,10 +165,13 @@ for epoch in range(args.epochs):
             total_loss += loss1.item()
             
             _, predicted = outputs.cpu().max(1)
-            print(predicted)
+            
+            for i in range(len(aa_test[index])):
+                if aa_test[index][i] == predicted[i]:
+                    correct_label[aa_test[index][i]] += 1
             correct += float(predicted.eq(aa_test[index].cpu()).sum().item())
-    
-    print('Epoch: %d,Testing acc:%.3f'%(epoch+1,100 * correct/test_num))
+    print(correct_label)
+    print('Epoch: %d,Testing acc:%.3f,Testing loss:%.3f'%(epoch+1,100 * correct/test_num, total_loss))
     acc = 100. * float(correct) / float(test_num)
     acc_record.append(acc)
     if epoch % 5 == 0:

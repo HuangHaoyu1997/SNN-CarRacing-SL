@@ -26,7 +26,7 @@ parser.add_argument('--epochs', type=int, default=100 ,help='training epoch')
 parser.add_argument('--optim', type=str, default='Adam', help='optimizer')
 parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 parser.add_argument('--batch_size', type=int, default=64, help='batch size')
-parser.add_argument('--device', type=int,default=1,help='index of GPU device')
+parser.add_argument('--device', type=int,default=0,help='index of GPU device')
 parser.add_argument('--ckpt_name', type=str, default='CNN-CarRacing', help='name of checkpoint file')
 
 args = parser.parse_args()
@@ -45,9 +45,9 @@ def generate_data(data_path, test_ratio=0.2):
     加速：[0,0.5,0]
     不动：[0.,0.,0.]
     '''
-    ss = torch.tensor(np.load(data_path+'sss_balance.npy')).reshape(-1,3,96,96).to(device).float()/255
-    aa = torch.tensor(np.load(data_path+'aaa_balance.npy')).to(device).long()
-    rr = torch.tensor(np.load(data_path+'rrr_balance.npy')).to(device)
+    ss = torch.tensor(np.load(data_path+'sss_balance.npy')).reshape(-1,3,96,96).float()/255
+    aa = torch.tensor(np.load(data_path+'aaa_balance.npy')).long()
+    rr = torch.tensor(np.load(data_path+'rrr_balance.npy'))
 
     sample_index = random.sample(range(len(aa)),len(aa))
     test_num = int(len(aa)*test_ratio//args.batch_size)*args.batch_size # 按比例分割训练集和测试集
@@ -126,7 +126,7 @@ for epoch in range(args.epochs):
     for index in BatchSampler(weight_sampler,args.batch_size,True): # drop_last=True则表示最后不足一个batch的数据被丢弃
         net.zero_grad()
         optimizer.zero_grad()
-        images = ss_train[index]
+        images = ss_train[index].to(device)
         outputs = net(images) 
         
         labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device).float()
@@ -136,7 +136,7 @@ for epoch in range(args.epochs):
         running_loss += loss.item()
         loss.backward()
         optimizer.step()
-        if (i+1)%600 == 0:
+        if (i+1)%300 == 0:
             print ('Epoch [%d/%d], Step [%d/%d], Loss: %.5f'%(epoch+1, args.epochs, i+1, train_num//args.batch_size,running_loss ))
             running_loss = 0
             # print('Time elasped:', time.time()-start_time)
@@ -149,7 +149,7 @@ for epoch in range(args.epochs):
     with torch.no_grad():
         # for batch_idx, (inputs, targets) in enumerate(test_loader):
         for index in BatchSampler(SubsetRandomSampler(range(test_num)), args.batch_size, True):
-            images = ss_test[index]
+            images = ss_test[index].to(device)
             optimizer.zero_grad()
             outputs = net(images)
             labels_ = torch.nn.functional.one_hot(aa_test[index], 4).to(device).float()

@@ -146,23 +146,24 @@ for epoch in range(args.epochs):
             # sampler = weight_sampler
             # for param_group in optimizer.param_groups:
             #     param_group['lr'] = args.lr  * 0.01
-            loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
+            loss = mse(outputs, labels_.to(device)) # 标准MSE损失函数
+            # loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
             
         running_loss += loss.item()
         loss.backward()
         optimizer.step()
         if (i+1)%300 == 0:
-            print ('Epoch [%d/%d], Step [%d/%d], Loss: %.5f'%(epoch+1, args.epochs, i+1, train_num//args.batch_size,running_loss ))
+            print('Epoch [%d/%d], Step [%d/%d], Loss: %.5f'%(epoch+1, args.epochs, i+1, train_num//args.batch_size,running_loss/i ))
             # running_loss = 0
             # print('Time elasped:', time.time()-start_time)
         i += 1
-    
+    loss_train_record.append(running_loss/i)
     # optimizer = lr_scheduler(optimizer, epoch, learning_rate, 30) # 学习率调整
 
     # 测试环节testing
     correct = 0
     total = 0
-    total_loss = 0
+    running_loss,i = 0,0
     correct_label = [0,0,0,0] # 分类别统计分类精度
     with torch.no_grad():
         # for batch_idx, (inputs, targets) in enumerate(test_loader):
@@ -176,7 +177,7 @@ for epoch in range(args.epochs):
             # loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
             loss = mse(outputs, labels_)
             # loss = -(outputs.log()*labels_).sum()
-            total_loss += loss.item()
+            running_loss += loss.item()
             
             _, predicted = outputs.cpu().max(1)
             
@@ -184,9 +185,11 @@ for epoch in range(args.epochs):
                 if aa_test[index][i] == predicted[i]:
                     correct_label[aa_test[index][i]] += 1
             correct += float(predicted.eq(aa_test[index].cpu()).sum().item())
-    print('Epoch: %d,Testing acc:%.3f,Testing loss:%.3f'%(epoch+1,100 * correct/test_num, total_loss), correct_label/num_test)
+            i += 1
+    print('Epoch: %d,Testing acc:%.3f,Testing loss:%.3f'%(epoch+1,100 * correct/test_num, running_loss/i), correct_label/num_test)
     acc = 100. * float(correct) / float(test_num)
     acc_record.append(acc)
+    loss_test_record.append(running_loss/i)
     if epoch % 5 == 0:
         print('Saving..')
         state = {
@@ -194,15 +197,25 @@ for epoch in range(args.epochs):
             'acc': acc,
             'epoch': epoch,
             'acc_record': acc_record,
-            'loss_record': 
+            'loss_test_record': loss_test_record,
+            'loss_train_record': loss_train_record
         }
-        if not os.path.isdir('checkpoint'):
-            os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt_' + args.ckpt_name + '.pth',_use_new_zipfile_serialization=False) # 将权重文件转换成非zip格式
+        if not os.path.isdir('checkpoint/'+args.ckpt_name):
+            os.mkdir('checkpoint/'+args.ckpt_name)
+        torch.save(state,'./checkpoint/'+args.ckpt_name+'/' + args.ckpt_name + '.pth', _use_new_zipfile_serialization=False) # 将权重文件转换成非zip格式
         best_acc = acc
-
+plt.figure(1)
 plt.plot(acc_record)
 plt.xlabel('epoch')
 plt.ylabel('testing acc')
 plt.grid()
-plt.savefig('testing_acc_'+ args.ckpt_name +'.png')
+plt.savefig('checkpoint/'+args.ckpt_name+'/testing_acc_'+ args.ckpt_name +'.png')
+
+
+plt.figure(2)
+plt.plot(loss_train_record)
+plt.plot(loss_test_record)
+plt.xlabel('epoch'), plt.ylabel('loss')
+plt.legend(['train','test'])
+plt.grid()
+plt.savefig('checkpoint/'+args.ckpt_name+'/loss_'+ args.ckpt_name +'.png')

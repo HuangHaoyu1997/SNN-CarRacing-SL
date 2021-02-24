@@ -17,3 +17,7 @@ import os
 import time
 from model import *
 import argparse
+
+
+pretrain_model = torch.load('./checkpoint/ckpt_CNN-CarRacing.t7')
+print(pretrain_model)

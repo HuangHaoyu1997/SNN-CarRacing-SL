@@ -38,7 +38,7 @@ args = parser.parse_args()
 
 data_path =  './data/' 
 device = torch.device("cuda:"+str(args.device) if torch.cuda.is_available() else "cpu")
-print(device)
+print('device:',device)
 
 def generate_data(data_path, test_ratio=0.2):
     '''
@@ -197,7 +197,7 @@ for epoch in range(args.epochs):
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')
-        torch.save(state, './checkpoint/ckpt_' + args.ckpt_name + '.t7')
+        torch.save(state, './checkpoint/ckpt_' + args.ckpt_name + '.pth',_use_new_zipfile_serialization=False) # 将权重文件转换成非zip格式
         best_acc = acc
 
 plt.plot(acc_record)

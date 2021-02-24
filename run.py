@@ -19,9 +19,14 @@ from model import *
 import argparse
 
 
-pretrain_model = torch.load('./checkpoint/ckpt_cnn.pth')
-print(pretrain_model['net'])
-print(pretrain_model['acc'])
-print(pretrain_model['epoch'])
-print(pretrain_model['acc_record'])
-print(pretrain_model.keys())
+pretrain_model = torch.load('./checkpoint/cnn-test/cnn-test.pth')
+# print(pretrain_model.keys()) # ['net', 'acc', 'epoch', 'acc_record', 'loss_test_record', 'loss_train_record', 'acc_label']
+
+net = ConvNet(input_channel=3,output_channel=4) # .to(device)
+net.load_state_dict(pretrain_model['net'])
+
+env = gym.make('CarRacing-v0')
+st = env.reset()
+print(st[0,0])
+env.close()
+

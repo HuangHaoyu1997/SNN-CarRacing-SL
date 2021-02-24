@@ -22,10 +22,16 @@ import argparse
 gym.logger.set_level(40)
 num_epi = 100
 render = False
+device = torch.device('cpu')
+model = 'snn' # 'cnn'
+model_path = './checkpoint/snn/snn.pth' # './checkpoint/CNN-CarRacing/CNN-CarRacing.pth'
 
-pretrain_model = torch.load('./checkpoint/CNN-CarRacing/CNN-CarRacing.pth')
+pretrain_model = torch.load(model_path)
 # print(pretrain_model.keys()) # ['net', 'acc', 'epoch', 'acc_record', 'loss_test_record', 'loss_train_record', 'acc_label']
-net = ConvNet(input_channel=3,output_channel=4) # .to(device)
+if model == 'cnn':
+    net = ConvNet(input_channel=3,output_channel=4) # .to(device)
+if model == 'snn':
+    net = SCNN(input_channel=3,output_channel=4,batch_size=128,device=device)
 net.load_state_dict(pretrain_model['net']) # 载入预训练模型
 net.eval() # 设置为推理模式，避免单样本送进网络对batchnorm产生影响
 
@@ -73,8 +79,15 @@ for i in range(num_epi):
     action_count = [0,0,times,0]
 
     while done is not True:
-        st = torch.tensor(st.copy()).reshape(3,96,96).unsqueeze_(0).float()/255
-        action = torch.argmax(net(st)).item()
+        if model == 'cnn': 
+            st = torch.tensor(st.copy()).reshape(3,96,96).unsqueeze_(0).float()/255
+            action = torch.argmax(net(st)).item()
+        if model == 'snn': 
+            st_ = torch.tensor(st.copy()).reshape(3,96,96).unsqueeze_(0).float()/255
+            st = torch.zeros((128,3,96,96)).float()
+            st[0] = st_
+            action = torch.argmax(net(st)[0]).item()
+        
         action_count[action] += 1 # 统计原始动作数量比例
 
         if action == 2: # 不再加速

@@ -19,5 +19,9 @@ from model import *
 import argparse
 
 
-pretrain_model = torch.load('./checkpoint/ckpt_CNN-CarRacing.t7')
-print(pretrain_model)
+pretrain_model = torch.load('./checkpoint/ckpt_cnn.pth')
+print(pretrain_model['net'])
+print(pretrain_model['acc'])
+print(pretrain_model['epoch'])
+print(pretrain_model['acc_record'])
+print(pretrain_model.keys())

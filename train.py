@@ -153,7 +153,7 @@ for epoch in range(args.epochs):
         optimizer.step()
         if (i+1)%300 == 0:
             print ('Epoch [%d/%d], Step [%d/%d], Loss: %.5f'%(epoch+1, args.epochs, i+1, train_num//args.batch_size,running_loss ))
-            running_loss = 0
+            # running_loss = 0
             # print('Time elasped:', time.time()-start_time)
         i += 1
     
@@ -194,6 +194,7 @@ for epoch in range(args.epochs):
             'acc': acc,
             'epoch': epoch,
             'acc_record': acc_record,
+            'loss_record': 
         }
         if not os.path.isdir('checkpoint'):
             os.mkdir('checkpoint')

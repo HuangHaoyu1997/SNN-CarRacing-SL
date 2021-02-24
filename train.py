@@ -125,21 +125,29 @@ def lr_scheduler(optimizer, epoch, init_lr=0.1, lr_decay_epoch=50):
 for epoch in range(args.epochs):
     running_loss,i = 0,0
     start_time = time.time() # 开始时间
-    # for i, (images, labels) in enumerate(train_loader):
-    # for index in BatchSampler(SubsetRandomSampler(range(train_num)), args.batch_size, True): # drop_last=True则表示最后不足一个batch的数据被丢弃
-    for index in BatchSampler(weight_sampler,args.batch_size,True): # drop_last=True则表示最后不足一个batch的数据被丢弃
+    
+    for index in BatchSampler(average_sampler,args.batch_size,True): # drop_last=True则表示最后不足一个batch的数据被丢弃
         net.zero_grad()
         optimizer.zero_grad()
         images = ss_train[index].to(device)
         outputs = net(images) 
-        labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device).float()
+        labels_ = torch.nn.functional.one_hot(aa_train[index], 4).to(device).float() # One-hot编码
         # labels_ = torch.zeros(args.batch_size, 4).scatter_(1, aa_train[index].view(-1, 1), 1).to(device)
-
-        loss_weight = torch.tensor([weight[i] for i in aa_train[index]]/weight.max()).to(device)
-        # loss = -(outputs.log() * labels_).mean() # cross entropy
-        # loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
-        loss = mse(outputs, labels_.to(device))
         
+        loss_weight = torch.tensor([weight[i] for i in aa_train[index]]/weight.max()).to(device) # 对批数据根据样本数量比例赋以不同权重
+        # loss = -(outputs.log() * labels_).mean() # 交叉熵损失函数
+        # loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean() # 根据样本数量比例进行加权的MSE损失函数
+        loss = mse(outputs, labels_.to(device)) # 标准MSE损失函数
+        
+        if epoch < args.epochs/2:
+            # sampler = average_sampler
+            loss = mse(outputs, labels_.to(device)) # 标准MSE损失函数
+        elif epoch >= args.epochs/2:
+            # sampler = weight_sampler
+            # for param_group in optimizer.param_groups:
+            #     param_group['lr'] = args.lr  * 0.01
+            loss = (((outputs - labels_.to(device))**2).mean(-1)*loss_weight).mean()
+            
         running_loss += loss.item()
         loss.backward()
         optimizer.step()

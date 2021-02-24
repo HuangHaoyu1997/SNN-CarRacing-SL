@@ -198,7 +198,8 @@ for epoch in range(args.epochs):
             'epoch': epoch,
             'acc_record': acc_record,
             'loss_test_record': loss_test_record,
-            'loss_train_record': loss_train_record
+            'loss_train_record': loss_train_record,
+            'acc_label': correct_label/num_test
         }
         if not os.path.isdir('checkpoint/'+args.ckpt_name):
             os.mkdir('checkpoint/'+args.ckpt_name)

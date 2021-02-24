@@ -60,6 +60,21 @@ def save_file():
     np.save(dir+'ss.npy',ss)
     np.save(dir+'rr.npy',rr)
 
+sss = np.load('./data/sss.npy')
+aaa = np.load('./data/aaa.npy')
+rrr = np.load('./data/rrr.npy')
+
+sss_balance = np.load('./data/sss_balance.npy')
+aaa_balance = np.load('./data/aaa_balance.npy')
+rrr_balance = np.load('./data/rrr_balance.npy')
+
+s = np.concatenate((sss_balance,sss))
+r = np.concatenate((rrr_balance,rrr))
+a = np.concatenate((aaa_balance,aaa))
+
+np.save('s_balance.npy',s)
+np.save('r_balance.npy',r)
+np.save('a_balance.npy',a)
 # aa,rr,ss = concat_all()
 # save_file()
 
